@@ -1,6 +1,5 @@
 import os, subprocess, json
-from tkinter import filedialog
-from tkinter import Tk
+from tkinter import filedialog, Tk
 
 def convert_files(directory, extension=".mkv"):
     for dirpath, dirs, files in os.walk(directory):
