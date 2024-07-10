@@ -1,30 +1,12 @@
-import os, subprocess, json, logging, shutil
-from tkinter import filedialog, Tk
-
-lastDirectoryPath = 'last_dir.json'
-lastHandbrakecliPath = 'last_handbrakecli.json'
-workspace_dir = "workspace"
+import os, subprocess, logging, shutil
+from tkinter import Tk
+from utilities import clean_workspace, get_directory, get_handbrakecli_path, conversion_file, workspace_dir, todolist_file, whitelist_file
 
 # Set up logging
-logging.basicConfig(filename='conversion.log', level=logging.INFO,
+logging.basicConfig(filename=conversion_file, level=logging.INFO,
                     format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-def clean_workspace(workspace_dir):
-    try:
-        for filename in os.listdir(workspace_dir):
-            file_path = os.path.join(workspace_dir, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.remove(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                logging.error(f"Failed to delete {file_path}. Reason: {e}")
-    except Exception as e:
-        logging.error(f"Failed to clean workspace {workspace_dir}. Reason: {e}")
-
 def process_file_with_workspace(source_file_path, destination_file_path, command):
-    workspace_dir = "workspace"
     os.makedirs(workspace_dir, exist_ok=True)  # Ensure the workspace directory exists
 
     # Define workspace paths
@@ -69,10 +51,19 @@ def process_file_with_workspace(source_file_path, destination_file_path, command
         except Exception as e:
             logging.error(f"Failed to clean up workspace: {e}")
 
+def log_mkv_files(directory):
+    with open(todolist_file, 'w') as log_file:
+        for dirpath, dirs, files in os.walk(directory):
+            for filename in files:
+                if filename.endswith('.mkv'):
+                    mkv_file_path = os.path.join(dirpath, filename).replace("\\", "/")
+                    log_file.write(mkv_file_path + '\n')
+                    print(f"Logged {filename}")
+
 def convert_files(directory, extension=".mkv"):
     handbrakecli_path = get_handbrakecli_path()
     try:
-        with open('whitelist.txt', 'r') as f:
+        with open(whitelist_file, 'r') as f:
             whitelist = set(f.read().splitlines())
     except FileNotFoundError:
         whitelist = set()
@@ -96,54 +87,9 @@ def convert_files(directory, extension=".mkv"):
                 print(f"Skipping {filename}")
                 logging.info(f"Skipping {filename}")
 
-def get_handbrakecli_path():
-    handbrakecli_path = os.path.join(os.getcwd(), "HandBrakeCLI.exe").replace("\\", "/")
-    try:
-        with open(lastHandbrakecliPath, 'r') as f:
-            handbrakecli_path = json.load(f)
-    except FileNotFoundError:
-        pass
-
-    root = Tk()
-    root.withdraw()  # Hide the main window.
-    if handbrakecli_path:
-        print(f"Current HandBrakeCLI path is {handbrakecli_path}.")
-    else:
-        handbrakecli_path = filedialog.askopenfilename(title="Select HandBrakeCLI.exe",
-                                                        filetypes=(("exe files", "*.exe"), ("all files", "*.*")))
-        if handbrakecli_path:  # If a file was selected
-            with open(lastHandbrakecliPath, 'w') as f:
-                json.dump(handbrakecli_path, f)
-
-    return handbrakecli_path
-
-def get_directory():
-    directory = None
-    try:
-        with open(lastDirectoryPath, 'r') as f:
-            directory = json.load(f)
-    except FileNotFoundError:
-        pass
-
-    root = Tk()
-    root.withdraw()  # Hide the main window.
-    if directory:
-        print(f"Current directory is {directory}. Do you want to change it? (yes/no)")
-        user_input = input().lower()
-        if user_input == 'yes' or user_input == 'y':
-            directory = filedialog.askdirectory()  # Show the "ask directory" dialog.
-            if directory:  # If a directory was selected
-                with open(lastDirectoryPath, 'w') as f:
-                    json.dump(directory, f)
-                return directory
-    if not directory:  # If no directory was selected or loaded from the file
-        directory = filedialog.askdirectory()  # Show the "ask directory" dialog.
-        with open(lastDirectoryPath, 'w') as f:
-            json.dump(directory, f)
-
-    return directory
-
 clean_workspace(workspace_dir)
+plex_directory = get_directory()
+log_mkv_files(plex_directory)
 root = Tk()
-root.withdraw()  # Hide the main window.
-convert_files(get_directory())
+root.withdraw()
+convert_files(plex_directory)

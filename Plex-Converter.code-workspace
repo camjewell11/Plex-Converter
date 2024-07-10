@@ -1,11 +1,13 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "P:/Movies"
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "path": "P:/Movies"
+    }
+  ],
+  "settings": {
+    "cSpell.ignoreWords": ["nvenc", "todolist"]
+  }
 }
